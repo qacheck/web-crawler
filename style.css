@@ -1,0 +1,14 @@
+#webcrl-view-products {
+	overflow-x: auto;
+}
+.webcrl-view-products {
+	border-collapse: collapse;
+}
+.webcrl-view-products table {
+	border-collapse: collapse;
+}
+.webcrl-view-products th,
+.webcrl-view-products td {
+	border: #eee 1px solid;
+	padding: 5px 10px;
+}
