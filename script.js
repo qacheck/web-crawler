@@ -85,18 +85,18 @@ jQuery(function($){
 	});
 
 	btn_save.on('click', function(e){
-		btn_save.html('Saving...');
+		btn_save.html('Loading...');
 		message.html('');
 		$.ajax({
 			url: webcrl.ajax_url+'?action=webcrl_view_crawled',
 			//data: {ua:ua,su:su[0]},
 			success: function(res) {
 				$('#webcrl-view-products').html(res);
-				btn_save.html('Saved');
+				btn_save.html('View');
 			},
 			error: function(xhr,status,err) {
 				$('#webcrl-view-products').html(err);
-				btn_save.html('Save fail!');
+				btn_save.html('Fail!');
 			}
 		});
 	});

@@ -179,7 +179,7 @@ class Woocommerce_Crawler {
 						}
 
 						$products[] = $product;
-
+						self::insert_to_db($product);
 						Web_Crawler::set_session( 'webcrl_products', $products );
 					}
 				}
@@ -250,6 +250,110 @@ class Woocommerce_Crawler {
 		return $return;
 	}
 
+	public static function insert_to_db($product) {
+		$su = Web_Crawler::get_session('webcrl_su', '');
+
+		if( $product['type']=='simple' || $product['type']=='external' || ($product['type']=='variable' && empty($product['variants'])) ) {
+
+			$product_id = Web_Crawler::post_exists($product['slug'],'product');
+
+			$post_data = array(
+				'post_title' => $product['title'],
+				'post_type' => 'product',
+				'post_name' => $product['slug'],
+				'post_status' => 'publish',
+				'post_content' => $product['content'],
+				'post_excerpt' => $product['excerpt'],
+			);
+
+			if($product_id) {
+				$post_data['ID'] = $product_id;
+			}
+
+			$product_id = wp_insert_post($post_data);
+
+			if($product_id) {
+				if(!empty($product['gallery'])) {
+					$thumbnail_id = Web_Crawler::upload_attachment($product['gallery'][0], 0);
+					
+					set_post_thumbnail( $product_id, $thumbnail_id );
+					update_post_meta( $product_id, '_gallery', $product['gallery'] );
+				}
+
+				update_post_meta( $product_id, '_variant', '' );
+				update_post_meta( $product_id, '_sku', $product['sku'] );
+				update_post_meta( $product_id, '_currency_symbol', $product['currency_symbol'] );
+				update_post_meta( $product_id, '_regular_price', $product['regular_price'] );
+				update_post_meta( $product_id, '_sale_price', $product['sale_price'] );
+				update_post_meta( $product_id, '_weight', $product['weight'] );
+				update_post_meta( $product_id, '_dimensions', $product['dimensions'] );
+				update_post_meta( $product_id, '_su', $su );
+			}
+
+		} else if( $product['type']=='variable' ) {
+			foreach($product['variants'] as $vi => $variant) {
+				$product_slug = $product['slug'].'-'.$variant['variation_id'];
+				
+				$product_id = Web_Crawler::post_exists($product_slug,'product');
+
+				$post_data = array(
+					'post_title' => $product['title'],
+					'post_type' => 'product',
+					'post_name' => $product_slug,
+					'post_status' => 'publish',
+					'post_content' => $product['content'],
+					'post_excerpt' => $product['excerpt'],
+				);
+
+				if($product_id) {
+					$post_data['ID'] = $product_id;
+				}
+
+				$product_id = wp_insert_post($post_data);
+
+				if($product_id) {
+					if( isset($variant['image']) && !empty($variant['image']) ) {
+						$thumbnail_id = Web_Crawler::upload_attachment($variant['image']['url'], 0);
+						set_post_thumbnail( $product_id, $thumbnail_id );
+					} else {
+						if(!empty($product['gallery'])) {
+							$thumbnail_id = Web_Crawler::upload_attachment($product['gallery'][0], 0);
+							set_post_thumbnail( $product_id, $thumbnail_id );
+						}
+					}
+
+					if(!empty($product['gallery'])) {
+						update_post_meta( $product_id, '_gallery', $product['gallery'] );
+					}
+
+					$_variant = '';
+					if(!empty($variant['attributes'])) {
+						foreach ($variant['attributes'] as $key => $value) {
+							$attr = str_replace('attribute_pa_','',$key);
+							ob_start();
+							?>
+							<p>
+								<span><?=esc_html($attr)?>: </span>
+								<span><?=esc_html($value)?></span>
+							</p>
+							<?php
+							$_variant .= ob_get_clean();
+						}
+					}
+
+					update_post_meta( $product_id, '_variant', $_variant );
+					update_post_meta( $product_id, '_sku', $variant['sku'] );
+					update_post_meta( $product_id, '_currency_symbol', $product['currency_symbol'] );
+					update_post_meta( $product_id, '_regular_price', $variant['display_regular_price'] );
+					update_post_meta( $product_id, '_sale_price', $variant['display_price'] );
+					update_post_meta( $product_id, '_weight', $variant['weight'] );
+					update_post_meta( $product_id, '_dimensions', $variant['dimensions'] );
+					update_post_meta( $product_id, '_su', $su );
+				}
+			}
+		}
+	}
+
 	public static function view_products() {
 		$products = Web_Crawler::get_session('webcrl_products', array());
 		if(!empty($products)) {
@@ -274,40 +378,6 @@ class Woocommerce_Crawler {
 				<?php
 				foreach ($products as $key => $product) {
 					if( $product['type']=='simple' || $product['type']=='external' || ($product['type']=='variable' && empty($product['variants'])) ) {
-
-						$product_id = Web_Crawler::post_exists($product['slug'],'product');
-
-						$post_data = array(
-							'post_title' => $product['title'],
-							'post_type' => 'product',
-							'post_name' => $product['slug'],
-							'post_status' => 'publish',
-							'post_content' => $product['content'],
-							'post_excerpt' => $product['excerpt'],
-						);
-
-						if($product_id) {
-							$post_data['ID'] = $product_id;
-						}
-
-						$product_id = wp_insert_post($post_data);
-
-						if($product_id) {
-							if(!empty($product['gallery'])) {
-								$thumbnail_id = Web_Crawler::upload_attachment($product['gallery'][0], 0);
-								
-								set_post_thumbnail( $product_id, $thumbnail_id );
-								update_post_meta( $product_id, '_gallery', $product['gallery'] );
-							}
-
-							update_post_meta( $product_id, '_variant', '' );
-							update_post_meta( $product_id, '_sku', $product['sku'] );
-							update_post_meta( $product_id, '_currency_symbol', $product['currency_symbol'] );
-							update_post_meta( $product_id, '_regular_price', $product['regular_price'] );
-							update_post_meta( $product_id, '_sale_price', $product['sale_price'] );
-							update_post_meta( $product_id, '_weight', $product['weight'] );
-							update_post_meta( $product_id, '_dimensions', $product['dimensions'] );
-						}
 
 						?>
 						<tr>
@@ -341,63 +411,6 @@ class Woocommerce_Crawler {
 						<?php
 					} else if( $product['type']=='variable' ) {
 						foreach($product['variants'] as $vi => $variant) {
-							$product_slug = $product['slug'].'-'.$variant['variation_id'];
-							
-							$product_id = Web_Crawler::post_exists($product_slug,'product');
-
-							$post_data = array(
-								'post_title' => $product['title'],
-								'post_type' => 'product',
-								'post_name' => $product_slug,
-								'post_status' => 'publish',
-								'post_content' => $product['content'],
-								'post_excerpt' => $product['excerpt'],
-							);
-
-							if($product_id) {
-								$post_data['ID'] = $product_id;
-							}
-
-							$product_id = wp_insert_post($post_data);
-
-							if($product_id) {
-								if( isset($variant['image']) && !empty($variant['image']) ) {
-									$thumbnail_id = Web_Crawler::upload_attachment($variant['image']['url'], 0);
-									set_post_thumbnail( $product_id, $thumbnail_id );
-								} else {
-									if(!empty($product['gallery'])) {
-										$thumbnail_id = Web_Crawler::upload_attachment($product['gallery'][0], 0);
-										set_post_thumbnail( $product_id, $thumbnail_id );
-									}
-								}
-
-								if(!empty($product['gallery'])) {
-									update_post_meta( $product_id, '_gallery', $product['gallery'] );
-								}
-
-								$_variant = '';
-								if(!empty($variant['attributes'])) {
-									foreach ($variant['attributes'] as $key => $value) {
-										$attr = str_replace('attribute_pa_','',$key);
-										ob_start();
-										?>
-										<p>
-											<span><?=esc_html($attr)?>: </span>
-											<span><?=esc_html($value)?></span>
-										</p>
-										<?php
-										$_variant .= ob_get_clean();
-									}
-								}
-
-								update_post_meta( $product_id, '_variant', $_variant );
-								update_post_meta( $product_id, '_sku', $variant['sku'] );
-								update_post_meta( $product_id, '_currency_symbol', $product['currency_symbol'] );
-								update_post_meta( $product_id, '_regular_price', $variant['display_regular_price'] );
-								update_post_meta( $product_id, '_sale_price', $variant['display_price'] );
-								update_post_meta( $product_id, '_weight', $variant['weight'] );
-								update_post_meta( $product_id, '_dimensions', $variant['dimensions'] );
-							}
 
 							?>
 							<tr>

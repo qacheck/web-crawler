@@ -72,7 +72,118 @@ class Web_Crawler {
 		// add_action( 'template_include', array($this, 'crawler_page') );
 		add_filter( 'manage_product_posts_columns', array( $this, 'product_columns_header' ), 10, 1 );
 		add_action( 'manage_product_posts_custom_column', array( $this, 'product_columns_value' ), 10, 2 );
+
+		add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
+
+		add_action('wp_ajax_download_attachment', array($this, 'download_attachment'));
+
+		add_filter( 'bulk_actions-edit-product', array($this, 'product_export_bulk_actions') );
+		add_filter( 'handle_bulk_actions-edit-product', array($this, 'product_export_bulk_action_handler'), 10, 3 );
+
+		add_action( 'admin_notices', array($this, 'product_export_bulk_action_notices') );
 		
+	}
+
+	public function product_export_bulk_action_notices() {
+		if ( ! empty( $_REQUEST['export_csv_done'] ) ) {
+			echo '<div id="message" class="updated notice is-dismissible">
+				<p>Export success! <a href="'.esc_url(urldecode($_REQUEST['export_csv_done'])).'">Download file</a>.</p>
+			</div>';
+		}
+	}
+
+	public function product_export_bulk_action_handler( $redirect, $doaction, $object_ids ) {
+		// let's remove query args first
+		$redirect = remove_query_arg( array( 'export_csv_done' ), $redirect );
+
+		if ( $doaction == 'export_csv' ) {
+			$filename = WEBCRL_PATH.'/export/product.csv';
+			$file = fopen($filename, "w");
+
+			$fileurl = WEBCRL_URL.'/export/product.csv';
+
+			$header = array(
+				'slug' => 'Slug',
+				'title' => 'Title',
+				'excerpt' => 'Excerpt',
+				'content' => 'Content',
+				'variant' => 'Variant',
+				'sku' => 'SKU',
+				'currency' => 'Currency',
+				'regular_price' => 'Regular price',
+				'sale_price' => 'Sale price',
+				'weight' => 'Weight',
+				'dimensions' => 'Dimensions',
+				'gallery' => 'Gallery',
+			);
+
+			fputcsv($file, $header);
+ 
+			foreach ( $object_ids as $product_id ) {
+				$product = get_post($product_id);
+				$post_thumbnail_url = wp_get_attachment_url(get_post_thumbnail_id($product));
+				$gallery = get_post_meta( $product_id, '_gallery', true );
+				array_unshift($gallery, $post_thumbnail_url);
+				//error_log(implode("\n",$gallery));
+				$data = array(
+					'slug' => $product->post_name,
+					'title' => $product->post_title,
+					'excerpt' => $product->post_excerpt,
+					'content' => $product->post_content,
+					'variant' => get_post_meta( $product_id, '_variant', true ),
+					'sku' => get_post_meta( $product_id, '_sku', true ),
+					'currency' => esc_html(get_post_meta( $product_id, '_currency_symbol'), true ),
+					'regular_price' => get_post_meta( $product_id, '_regular_price', true ),
+					'sale_price' => get_post_meta( $product_id, '_sale_price', true ),
+					'weight' => get_post_meta( $product_id, '_weight', true ),
+					'dimensions' => get_post_meta( $product_id, '_dimensions', true ),
+					'gallery' => implode("\n",$gallery)
+				);
+				fputcsv($file, $data);
+			}
+
+			fclose($file);
+	 
+			// do not forget to add query args to URL because we will show notices later
+			$redirect = add_query_arg(
+				'export_csv_done', // just a parameter for URL (we will use $_GET['export_csv_done'] )
+				urlencode( $fileurl ), // parameter value - how much posts have been affected
+			$redirect );
+	 
+		}
+
+		return $redirect;
+	}
+
+	public function product_export_bulk_actions( $bulk_array ) {
+		$bulk_array['export_csv'] = 'Export CSV';
+		return $bulk_array;
+
+	}
+
+	public function download_attachment() {
+
+		die;
+	}
+
+	public function product_gallery($post) {
+		$gallery = get_post_meta($post->ID,'_gallery', true);
+		if(!empty($gallery)) {
+			foreach ($gallery as $key => $url) {
+				?>
+				<a href="<?php echo esc_url($url); ?>" target="_blank"><img src="<?php echo esc_url($url); ?>" style="height:80px;width:auto;"></a>&nbsp;
+				<?php
+			}
+		}
+	}
+
+	public function add_meta_boxes() {
+		add_meta_box(
+            'product-gallery',
+            'Gallery',
+            array($this, 'product_gallery'),
+            'product'
+        );
 	}
 
 	public function product_columns_value( $column, $post_id ) {
@@ -280,7 +391,7 @@ class Web_Crawler {
 								<input type="text" id="webcrl_su" name="webcrl_su" value="<?=esc_url($su)?>" class="widefat">
 								<input type="hidden" id="webcrl_ua" name="webcrl_ua" value="<?=esc_attr($_SERVER['HTTP_USER_AGENT'])?>">
 								</label>
-								<p><button type="button" id="webcrl_do" class="webcrl-button button">Get products</button> <button type="button" id="webcrl_stop" class="webcrl-button button" disabled="disabled">Stop</button> <button type="button" id="webcrl_save" class="webcrl-button button">Save</button></p>
+								<p><button type="button" id="webcrl_do" class="webcrl-button button">Get products</button> <button type="button" id="webcrl_stop" class="webcrl-button button" disabled="disabled">Stop</button> <button type="button" id="webcrl_save" class="webcrl-button button">View</button></p>
 
 								<div id="webcrl-message"></div>
 								<table id="webcrl-results">
