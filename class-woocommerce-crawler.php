@@ -88,10 +88,10 @@ class Woocommerce_Crawler {
 						}
 
 						foreach ($html_product->find('.woocommerce-product-gallery__image') as $key => $value) {
-							$html_image = $value->find('img',0);
+							$html_image = $value->find('a',0);
 							if($html_image) {
-								$src = explode('?', esc_url_raw($html_image->src));
-								$product['gallery'][] = esc_url($src[0]);
+								//$src = explode('?', esc_url_raw($html_image->src));
+								$product['gallery'][] = esc_url($html_image->href);
 							}
 						}
 
@@ -253,9 +253,10 @@ class Woocommerce_Crawler {
 	public static function view_products() {
 		$products = Web_Crawler::get_session('webcrl_products', array());
 		if(!empty($products)) {
+			//Web_Crawler::debug($products);
 			//$su = Web_Crawler::get_session('webcrl_su', '');
 			?>
-			<table class="webcrl-view-products" style="width:100%;">
+			<table class="webcrl-view-products">
 				<tr>
 					<th>Thumbnail</th>
 					<th>Slug</th>
@@ -304,7 +305,7 @@ class Woocommerce_Crawler {
 						</tr>
 						<?php
 					} else if( $product['type']=='variable' ) {
-						foreach($product['variants'] as $variant) {
+						foreach($product['variants'] as $vi => $variant) {
 
 							?>
 							<tr>
@@ -342,7 +343,9 @@ class Woocommerce_Crawler {
 								<td><?=esc_html($variant['weight'])?></td>
 								<td><?=esc_html($variant['dimensions'])?></td>
 								<td><?php
-								
+								if( isset($variant['image']) && !empty($variant['image']) ) {
+									echo '<a href="'.esc_url($variant['image']['url']).'" target="_blank">'.esc_url($variant['image']['url']).'</a>';
+								}
 								?></td>
 							</tr>
 							<?php

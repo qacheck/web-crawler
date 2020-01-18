@@ -93,6 +93,7 @@ class Web_Crawler {
 
 	public function activate() {
 		set_transient( 'webcrl_flush', 1, 60 );
+		//flush_rewrite_rules();
 	}
 
 	public function enqueue_scripts() {
@@ -118,6 +119,11 @@ class Web_Crawler {
 		$_SESSION[$name] = $data;
 	}
 
+	public static function debug($var, $pre=true) {
+		$debug = print_r($var,true);
+		echo ($pre)?'<pre>'.$debug.'</pre>':$debug;
+	}
+
 	public function crawler_page() {
 		if(!current_user_can('manage_options')) return;
 
@@ -128,6 +134,9 @@ class Web_Crawler {
 			<h2><?php _e('Connections'); ?></h2>
 			<div class="postbox">
 				<div class="inside">
+					<?php
+					//echo esc_html(wp_remote_retrieve_body(wp_remote_get('https://themes.woocommerce.com/storefront/product/woo-single-1/', array('user-agent','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36'))));
+					?>
 					<div id="web-crawler-page">
 						<div style="display:flex;align-items:stretch;">
 							<div style="padding-right:16px;">
@@ -207,6 +216,11 @@ class Web_Crawler {
 				'show_in_rest'        => false,
 			)
 		);
+
+		if(get_transient( 'webcrl_flush' )) {
+			flush_rewrite_rules();
+			delete_transient('webcrl_flush');
+		}
 	}
 
 	public function webcrl_remove_crawled() {

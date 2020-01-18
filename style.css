@@ -2,6 +2,7 @@
 	overflow-x: auto;
 }
 .webcrl-view-products {
+	min-width: 100%;
 	border-collapse: collapse;
 }
 .webcrl-view-products table {

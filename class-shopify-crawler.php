@@ -39,8 +39,90 @@ class Shopify_Crawler {
 
 	public static function view_products() {
 		$products = Web_Crawler::get_session('webcrl_products', array());
-		print_r($products);
-		
+		//Web_Crawler::debug($products);
+		if(!empty($products['products'])) {
+			?>
+			<table class="webcrl-view-products">
+				<tr>
+					<th>Thumbnail</th>
+					<th>Slug</th>
+					<th>Title</th>
+					<th>Type</th>
+					<th>Variant</th>
+					<th>SKU</th>
+					<th>Price unit</th>
+					<th>Regular price</th>
+					<th>Sale price</th>
+					<th>Weight</th>
+					<th>Dimensions</th>
+					<th>Gallery</th>
+				</tr>
+				<?php
+				foreach ($products['products'] as $key => $product) {
+					$rowspan = count($product['variants']);
+					foreach($product['variants'] as $index => $variant) {
+
+						?>
+						<tr>
+							<td>
+								<?php
+								if( isset($product['images']) && !empty($product['images']) ) {
+									?>
+									<img src="<?=esc_url($product['images'][0]['src'])?>" width="80">
+									<?php
+								}
+								?>
+							</td>
+							<td style="white-space:nowrap;"><?=esc_html($product['handle'])?></td>
+							<td style="white-space:nowrap;"><?php
+							if($index==0) {
+								echo '<p>'.esc_html($product['title']).'</p>';
+								echo '<p>'.esc_html($variant['title']).'</p>';
+							} else {
+								echo esc_html($variant['title']);
+							}
+							?></td>
+							<td><?=esc_html($product['product_type'])?></td>
+							<td><?php
+							foreach ($product['options'] as $option) {
+								?>
+								<div style="white-space:nowrap;">
+									<span><?=esc_html($option['name'])?>:</span>
+									<span><?=esc_html($variant['option'.$option['position']])?></span>
+								</div>
+								<?php
+							}
+							?></td>
+							<td><?=esc_html($variant['sku'])?></td>
+							<td><?=esc_html('$')?></td>
+							<td><?=esc_html($variant['compare_at_price'])?></td>
+							<td><?=esc_html($variant['price'])?></td>
+							<td><?=esc_html($variant['grams'])?>g</td>
+							<td></td>
+							<?php
+							if($index==0) {
+								echo '<td rowspan="'.$rowspan.'">';
+								if(!empty($product['images'])) {
+									foreach ($product['images'] as $img_i => $img) {
+										$src = explode('?', $img['src']);
+										if(in_array($variant['id'], $img['variant_ids'])) {
+											echo '<p><a href="'.esc_url($src[0]).'" target="_blank">'.esc_url($src[0]).'</a></p>';
+										} else {
+											echo '<p><a href="'.esc_url($src[0]).'" target="_blank">'.esc_url($src[0]).'</a></p>';
+										}
+									}
+								}
+								echo '</td>';
+							}
+							?>
+						</tr>
+						<?php
+					}
+				}
+				?>
+			</table>
+			<?php
+		}
 	}
 
 }
