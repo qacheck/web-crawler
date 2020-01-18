@@ -97,10 +97,10 @@ class Web_Crawler {
 		$redirect = remove_query_arg( array( 'export_csv_done' ), $redirect );
 
 		if ( $doaction == 'export_csv' ) {
-			$filename = WEBCRL_PATH.'/export/product.csv';
+			$filename = WEBCRL_PATH.'/export/products.csv';
 			$file = fopen($filename, "w");
 
-			$fileurl = WEBCRL_URL.'/export/product.csv';
+			$fileurl = WEBCRL_URL.'/export/products.csv';
 
 			$header = array(
 				'slug' => 'Slug',
@@ -125,6 +125,9 @@ class Web_Crawler {
 				$gallery = get_post_meta( $product_id, '_gallery', true );
 				array_unshift($gallery, $post_thumbnail_url);
 				//error_log(implode("\n",$gallery));
+				$weight = get_post_meta( $product_id, '_weight', true );
+				$dimensions = get_post_meta( $product_id, '_dimensions', true );
+
 				$data = array(
 					'slug' => $product->post_name,
 					'title' => $product->post_title,
@@ -132,11 +135,11 @@ class Web_Crawler {
 					'content' => $product->post_content,
 					'variant' => get_post_meta( $product_id, '_variant', true ),
 					'sku' => get_post_meta( $product_id, '_sku', true ),
-					'currency' => esc_html(get_post_meta( $product_id, '_currency_symbol'), true ),
+					'currency' => esc_html(get_post_meta( $product_id, '_currency_symbol', true) ),
 					'regular_price' => get_post_meta( $product_id, '_regular_price', true ),
 					'sale_price' => get_post_meta( $product_id, '_sale_price', true ),
-					'weight' => get_post_meta( $product_id, '_weight', true ),
-					'dimensions' => get_post_meta( $product_id, '_dimensions', true ),
+					'weight' => ($weight!='N/A')?$weight:'',
+					'dimensions' => ($dimensions!='N/A')?$dimensions:'',
 					'gallery' => implode("\n",$gallery)
 				);
 				fputcsv($file, $data);

@@ -117,7 +117,7 @@ class Shopify_Crawler {
 							update_post_meta( $product_id, '_regular_price', $variant['compare_at_price'] );
 							update_post_meta( $product_id, '_sale_price', $variant['price'] );
 							update_post_meta( $product_id, '_weight', $variant['grams'].'g' );
-							update_post_meta( $product_id, '_dimensions', '' );
+							update_post_meta( $product_id, '_dimensions', 'N/A' );
 						}
 						
 						?>

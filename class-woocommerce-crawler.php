@@ -173,9 +173,9 @@ class Woocommerce_Crawler {
 						}
 
 						$product['dimensions'] = 'N/A';
-						$html_weight = $html_product->find('.woocommerce-product-attributes-item--dimensions',0);
-						if($html_weight) {
-							$product['dimensions'] = html_entity_decode(trim($html_weight->find('.woocommerce-product-attributes-item__value',0)->plaintext));
+						$html_dimensions = $html_product->find('.woocommerce-product-attributes-item--dimensions',0);
+						if($html_dimensions) {
+							$product['dimensions'] = html_entity_decode(trim($html_dimensions->find('.woocommerce-product-attributes-item__value',0)->plaintext));
 						}
 
 						$products[] = $product;
