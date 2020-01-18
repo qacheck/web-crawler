@@ -70,7 +70,71 @@ class Web_Crawler {
 		add_action( 'admin_enqueue_scripts', array($this, 'enqueue_scripts') );
 
 		// add_action( 'template_include', array($this, 'crawler_page') );
+		add_filter( 'manage_product_posts_columns', array( $this, 'product_columns_header' ), 10, 1 );
+		add_action( 'manage_product_posts_custom_column', array( $this, 'product_columns_value' ), 10, 2 );
 		
+	}
+
+	public function product_columns_value( $column, $post_id ) {
+		switch ($column) {
+			case 'thumbnail':
+				echo '<div class="post-thumbnail">'.get_the_post_thumbnail( $post_id, 'thumbnail', array('style'=>'width:80px;height:auto;') ).'</div>';
+				break;
+			
+			case 'variant':
+				echo get_post_meta($post_id, '_variant', true);
+				break;
+
+			case 'sku':
+				echo esc_html(get_post_meta($post_id, '_sku', true));
+				break;
+
+			case 'currency':
+				echo esc_html(get_post_meta($post_id, '_currency_symbol', true));
+				break;
+
+			case 'regular_price':
+				echo esc_html(get_post_meta($post_id, '_regular_price', true));
+				break;
+
+			case 'sale_price':
+				echo esc_html(get_post_meta($post_id, '_sale_price', true));
+				break;
+
+			case 'weight':
+				echo esc_html(get_post_meta($post_id, '_weight', true));
+				break;
+
+			case 'weight':
+				echo esc_html(get_post_meta($post_id, '_dimensions', true));
+				break;
+		}
+	}
+
+	public function product_columns_header($columns) {
+		$new_columns = array();
+
+		$cb = $columns['cb'];
+		$date = $columns['date'];
+		unset($columns['cb']);
+		unset($columns['date']);
+		$new_columns = array(
+			'cb' => $cb,
+			'thumbnail' => __('Thumbnail')
+		);
+
+		$columns = array_merge($new_columns, $columns);
+
+		$columns['variant'] = __('Variant');
+		$columns['sku'] = __('SKU');
+		$columns['currency'] = __('Currency');
+		$columns['regular_price'] = __('Regular price');
+		$columns['sale_price'] = __('Sale price');
+		$columns['weight'] = __('Weight');
+		$columns['dimensions'] = __('Dimensions');
+		$columns['date'] = $date;
+
+		return $columns;
 	}
 
 	public function webcrl_view_crawled() {
@@ -122,6 +186,67 @@ class Web_Crawler {
 	public static function debug($var, $pre=true) {
 		$debug = print_r($var,true);
 		echo ($pre)?'<pre>'.$debug.'</pre>':$debug;
+	}
+
+	public static function post_exists( $post_name='', $type = '' ) {
+		global $wpdb;
+
+		$query = "SELECT ID FROM $wpdb->posts WHERE 1=1";
+		$args = array();
+
+		if ( !empty ( $post_type ) ) {
+			$query .= ' AND post_type=%s';
+			$args[] = $post_type;
+		}
+
+		if ( !empty ( $post_name ) ) {
+			$query .= ' AND post_name=%s';
+			$args[] = $post_name;
+		}
+
+		if ( !empty ( $args ) ) {
+			$sql = $wpdb->prepare($query, $args);
+			return (int) $wpdb->get_var($sql);
+		}
+
+		return 0;
+	}
+
+	public static function upload_attachment($url='', $post_id=0) {
+		$attachmentId = false;
+		if( !empty( $url )  ) {
+
+			if ( !function_exists('media_handle_upload') ) {
+			    require_once(ABSPATH . "wp-admin" . '/includes/image.php');
+			    require_once(ABSPATH . "wp-admin" . '/includes/file.php');
+			    require_once(ABSPATH . "wp-admin" . '/includes/media.php');
+			}
+
+			$file = array();
+			$file['name'] = 'attachment-'.wp_basename(urldecode($url));
+			$file['tmp_name'] = download_url($url);
+			
+			$attach_name = sanitize_title(preg_replace('/\.[^.]+$/', '', sanitize_file_name($file['name'])));
+			
+			$attachmentId = self::post_exists( $attach_name, 'attachment' );
+			//error_log($attachmentId.' | '.$attach_name);
+			if(!$attachmentId) {
+				if (is_wp_error($file['tmp_name'])) {
+				    @unlink($file['tmp_name']);
+				    //var_dump( $file['tmp_name']->get_error_messages( ) );
+				} else {
+				    $attachmentId = media_handle_sideload($file, $post_id);
+
+				    if ( is_wp_error($attachmentId) ) {
+				        @unlink($file['tmp_name']);
+				        return 0;
+				    }
+				}
+			}
+			
+			
+		}
+		return absint($attachmentId);
 	}
 
 	public function crawler_page() {

@@ -93,6 +93,10 @@ jQuery(function($){
 			success: function(res) {
 				$('#webcrl-view-products').html(res);
 				btn_save.html('Saved');
+			},
+			error: function(xhr,status,err) {
+				$('#webcrl-view-products').html(err);
+				btn_save.html('Save fail!');
 			}
 		});
 	});
